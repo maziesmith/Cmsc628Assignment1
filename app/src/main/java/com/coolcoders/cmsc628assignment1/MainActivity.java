@@ -7,30 +7,11 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.app.Service;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.ContextWrapper;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.graphics.Bitmap;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
-import android.os.IBinder;
-import android.provider.MediaStore;
-import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.Toast;
 
 import java.util.Calendar;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class MainActivity extends ActionBarActivity implements SensorEventListener {
 
@@ -58,12 +39,12 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         iTimeEnd = _calendar.get(Calendar.SECOND);
         if (iTimeEnd - iTimeStart >= iInterval)
         {
-            // briefly postpone inputting data so info can be processed
             onPause();
             // TODO: interpret sensor data
             // TODO: save data to SD
             String sText = "Sleeping";
-            /*
+            /*            // briefly postpone inputting data so info can be processed
+
              Whichever count for activity type has the majority probably
              estimates the actual activity performed during the period
               */
@@ -74,7 +55,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
                 sText = "Walking";
             }
 
-            ListItem item = new ListItem(sText, iTimeStart, iTimeEnd);
+            EntryItem item = new EntryItem(sText, iTimeStart, iTimeEnd);
 
             //TODO: display list item
 
