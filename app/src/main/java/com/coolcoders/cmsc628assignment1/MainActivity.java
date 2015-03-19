@@ -10,80 +10,89 @@ import android.view.MenuItem;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.widget.Toast;
 
 import java.util.Calendar;
 
-public class MainActivity extends ActionBarActivity implements SensorEventListener {
+public class MainActivity extends ActionBarActivity implements SensorEventListener
+{
+    private Handler _handler = null;
+    private SensorManager _sensorManager = null;
+    private Sensor _accelerometer = null, _gyroscope = null;
+    private final int iInterval = 10000; //120000;//milliseconds
 
-    private Handler _handler;
-    private Calendar _calendar;
-    private SensorManager _sensorManager;
-    private Sensor _accelerometer, _gyroscope;
-    private final int iInterval = 120;
-
-    private int iTimeStart, iTimeEnd;
+    private long lTimeStart, lTimeEnd;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         _handler = new Handler();
-        _calendar = Calendar.getInstance();
-        iTimeStart = _calendar.get(Calendar.SECOND);
-        _sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        _accelerometer = _sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        _gyroscope = _sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        lTimeStart = System.currentTimeMillis();
+        _sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (_sensorManager != null) {
+            _accelerometer = _sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            _gyroscope = _sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        }
+
     }
 
-
+    @Override
     public void onSensorChanged(SensorEvent event) {
-        iTimeEnd = _calendar.get(Calendar.SECOND);
-        if (iTimeEnd - iTimeStart >= iInterval)
-        {
-            onPause();
-            // TODO: interpret sensor data
-            // TODO: save data to SD
+        lTimeEnd = System.currentTimeMillis();
+        if (lTimeEnd - lTimeStart >= iInterval) {
+//            onPause();
+//            // TODO: interpret sensor data
+//            // TODO: save data to SD
+
+
             String sText = "Sleeping";
-            /*            // briefly postpone inputting data so info can be processed
-
-             Whichever count for activity type has the majority probably
-             estimates the actual activity performed during the period
-              */
-            if (true) {
-                sText = "Sitting";
-            }
-            else if (true) {
-                sText = "Walking";
-            }
-
-            EntryItem item = new EntryItem(sText, iTimeStart, iTimeEnd);
-
-            //TODO: display list item
-
-            iTimeStart = iTimeEnd;
-            // Data is processed/saved... resume recording
-            onResume();
-        }
-        else if (event.sensor == _accelerometer)
-        {
-            // TODO: get sensor data, record somehow
-        }
-        else if (event.sensor == _gyroscope)
-        {
-
+//            /*            // briefly postpone inputting data so info can be processed
+//
+//             Whichever count for activity type has the majority probably
+//             estimates the actual activity performed during the period
+//              */
+//            if (true) {
+//                sText = "Sitting";
+//            }
+//            else if (true) {
+//                sText = "Walking";
+//            }
+//
+//            EntryItem item = new EntryItem(sText, iTimeStart, iTimeEnd);
+            String message = "Recorded new times: ";
+//            //TODO: display list item
+//
+            //Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            lTimeStart = lTimeEnd;
+//            // Data is processed/saved... resume recording
+//            onResume();
+//        }
+//        else if (event.sensor == _accelerometer)
+//        {
+//            // TODO: get sensor data, record somehow
+//        }
+//        else if (event.sensor == _gyroscope)
+//        {
+//          }
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        _sensorManager.registerListener(this, _accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        _sensorManager.registerListener(this, _gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+        int a;
+        if (_accelerometer!=null)
+            _sensorManager.registerListener(this, _accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        if (_gyroscope!=null)
+            _sensorManager.registerListener(this, _gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        _sensorManager.unregisterListener(this);
+        if (_sensorManager!=null)
+            _sensorManager.unregisterListener(this);
     }
 
     @Override
