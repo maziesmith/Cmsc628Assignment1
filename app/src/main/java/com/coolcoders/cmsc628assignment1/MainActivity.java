@@ -12,87 +12,97 @@ import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.widget.Toast;
 
-import java.util.Calendar;
-
 public class MainActivity extends ActionBarActivity implements SensorEventListener
 {
+    private static class errors {
+        public static int OK=0,NO_SENSORS=1,NO_ACCELEROMETER=2,NO_GYROSCOPE=3;
+    }
+    private int errortype = errors.OK;
+
     private Handler _handler = null;
     private SensorManager _sensorManager = null;
     private Sensor _accelerometer = null, _gyroscope = null;
-    private final int iInterval = 10000; //120000;//milliseconds
+    private final long lWarningInterval = 6000; // 6 seconds
+    private final long lInterval = 20000; //120 seconds
 
-    private long lTimeStart, lTimeEnd;
+    private long lTimeStart, lWarningTimeStart, lTimeEnd;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         _handler = new Handler();
         lTimeStart = System.currentTimeMillis();
+        lWarningTimeStart = lTimeStart;
         _sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        if (_sensorManager != null) {
-            _accelerometer = _sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            _gyroscope = _sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        _accelerometer = _sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        _gyroscope = _sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        if (_sensorManager==null) {
+            errortype = errors.NO_SENSORS;
+        } else if (_accelerometer==null){
+            errortype = errors.NO_ACCELEROMETER;
+        } else if (_gyroscope==null){
+            errortype = errors.NO_GYROSCOPE;
         }
-
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
         lTimeEnd = System.currentTimeMillis();
-        if (lTimeEnd - lTimeStart >= iInterval) {
-//            onPause();
-//            // TODO: interpret sensor data
-//            // TODO: save data to SD
 
-
-            String sText = "Sleeping";
-//            /*            // briefly postpone inputting data so info can be processed
-//
-//             Whichever count for activity type has the majority probably
-//             estimates the actual activity performed during the period
-//              */
-//            if (true) {
-//                sText = "Sitting";
-//            }
-//            else if (true) {
-//                sText = "Walking";
-//            }
-//
-//            EntryItem item = new EntryItem(sText, iTimeStart, iTimeEnd);
-            String message = "Recorded new times: ";
-//            //TODO: display list item
-//
-            //Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+        if (lTimeEnd - lWarningTimeStart >= lWarningInterval) {
+            //periodically show warning messages on a short interval
+            if (errortype == errors.NO_GYROSCOPE) {
+                Toast.makeText(getApplicationContext(), "WARNING: Missing Gyroscope!", Toast.LENGTH_SHORT).show();
+            } else if (errortype == errors.NO_ACCELEROMETER) {
+                Toast.makeText(getApplicationContext(), "WARNING: Missing Accelerometer!", Toast.LENGTH_SHORT).show();
+            } else if (errortype == errors.NO_SENSORS) {
+                Toast.makeText(getApplicationContext(), "WARNING: Missing Required Sensors!", Toast.LENGTH_SHORT).show();
+            }
+            lWarningTimeStart = lTimeEnd;
+        }
+        else if (lTimeEnd - lTimeStart >= lInterval) {
+            // TODO: create a new entry
+            //   EntryItem item = new EntryItem("?", lTimeStart, lTimeEnd);
+        //    Toast.makeText(getApplicationContext(), "INTERVAL: "+(new Long(((lTimeEnd - lTimeStart)/1000))).toString(), Toast.LENGTH_SHORT).show();
             lTimeStart = lTimeEnd;
-//            // Data is processed/saved... resume recording
-//            onResume();
-//        }
-//        else if (event.sensor == _accelerometer)
-//        {
-//            // TODO: get sensor data, record somehow
-//        }
-//        else if (event.sensor == _gyroscope)
-//        {
-//          }
+        } else {
+            // read data
+            final float xval = event.values[0];
+            final float yval = event.values[1];
+            final float zval = event.values[2];
+            if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                _handler.post(new Runnable(){
+                    @Override
+                    public void run() {
+                        //String message = "Accelerometer: "+xval+", "+yval+", "+zval;
+                        //Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else
+            if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+                _handler.post(new Runnable(){
+                    @Override
+                    public void run() {
+                        //String message = "Gyroscope: "+xval+", "+yval+", "+zval;
+                        //Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        int a;
-        if (_accelerometer!=null)
-            _sensorManager.registerListener(this, _accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        if (_gyroscope!=null)
-            _sensorManager.registerListener(this, _gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
-
+        _sensorManager.registerListener(this, _accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        _sensorManager.registerListener(this, _gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (_sensorManager!=null)
-            _sensorManager.unregisterListener(this);
+        _sensorManager.unregisterListener(this);
     }
 
     @Override

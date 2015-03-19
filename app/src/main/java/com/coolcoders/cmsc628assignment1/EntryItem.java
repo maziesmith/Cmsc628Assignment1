@@ -11,9 +11,7 @@ public class EntryItem {
 
     public EntryItem(String info, long lTimeStart, long lTimeEnd) {
 
-        // TODO: Make sure time integers are displayed properly as times
-
-        // Reads in time values as seconds
+        // Reads in time values as milliseconds
         this.strInfo = info;
         this.lTimeStart = lTimeStart;
         this.lTimeEnd = lTimeEnd;
