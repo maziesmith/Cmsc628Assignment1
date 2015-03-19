@@ -13,6 +13,11 @@ import java.util.List;
  * Use this to manage the list of EntryItem object instances
  */
 public class EntryAdapter extends ArrayAdapter<EntryItem> {
+    /**
+     * Constructor that just calls the super version from ArrayAdapter.
+     * @param context the current context
+     * @param items the list of activity entries
+     */
     public EntryAdapter(Context context, List<EntryItem> items) {
         super(context, R.layout.entry_item, items);
     }
