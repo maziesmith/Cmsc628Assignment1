@@ -14,39 +14,25 @@ import android.widget.Toast;
 
 public class MainActivity extends ActionBarActivity implements SensorEventListener
 {
-    /**
-     * This class defines several constants that are used to represent error codes.
-     */
-    private static class errors {
-        /** Indicates that no errors were detected. */
-        public static int OK=0;
-        /** Indicates that no SensorManager was created. */
-        public static int NO_SENSORS=1;
-        /** Indicates that no accelerometer was detected. */
-        public static int NO_ACCELEROMETER=2;
-        /** Indicates that no gyroscope was detected. */
-        public static int NO_GYROSCOPE=3;
-    }
-    /** Stores any errors that occur during setup. */
-    private int errortype = errors.OK;
-
     private Handler _handler = null;
     private SensorManager _sensorManager = null;
-    /** The accelerometer sensor. */
-    private Sensor _accelerometer = null;
-    /** The gyroscope sensor. */
-    private Sensor _gyroscope = null;
-    /** How long to wait between displaying warning messages. Currently 6 seconds. */
-    private final long lWarningInterval = 6000; // 6 seconds
-    /** How long to go between taking readings. Currently 120 seconds. */
-    private final long lInterval = 20000; //120 seconds
+    private Sensor _accelerometer = null; /** accelerometer sensor. */
+    private Sensor _gyroscope = null; /** gyroscope sensor. */
 
-    /** When the current interval started. */
-    private long lTimeStart;
-    /** When the most recent warning message was displayed. */
+    /** Intervals between reading sensor data, displaying warnings, and recording data */
+    private final long lSensorInterval = 5000; // 0.5 seconds
+    private final long lWarningInterval = 120000; // 120 seconds
+    private final long lRecordInterval = 12000; // 12 seconds
+
+    /** Track times between reading sensor data, showing warnings, and recording data */
+    private long lSensorTimeStart;
     private long lWarningTimeStart;
+    private long lRecordTimeStart;
     /** The 'current' time; updated every time sensors change. */
     private long lTimeEnd;
+
+    /** Gets message from Warnings class depending on status of sensors detected. */
+    private int errorCode = Warnings.OK;
 
     // So, the problem is that 1) the gyroscope has no idea which way is up, 2) the accelerometer
     // can feel acceleration due to gravity, but has no way to differentiate gravity vs. movement,
@@ -57,6 +43,10 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     private float yAxis;
     private float zAxis;
 
+    /** Store cumulative accelerator x,y,z data from the sensors */
+    private float[] _data_accelerometer;
+
+
     /**
      * This is called once during setup. It handles initialization.
      * @param savedInstanceState If this is resuming from a previous run, load previous state.
@@ -66,26 +56,26 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         // Display the main activity.
         this.setContentView(R.layout.activity_main);
+        _data_accelerometer = new float[3];
         _handler = new Handler();
         // Record the start time.
-        lTimeStart = System.currentTimeMillis();
-        // If there are any warnings, display them after the waiting interval.
-        lWarningTimeStart = lTimeStart;
-
+        lRecordTimeStart = System.currentTimeMillis();
+        lSensorTimeStart = lRecordTimeStart;
+        lWarningTimeStart = lRecordTimeStart;
         // Attempt to create the sensor manager.
         _sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         // First, check if a SensorManager was successfully created.
         if (_sensorManager==null) {
-            errortype = errors.NO_SENSORS;
+            errorCode = Warnings.NO_SENSORS;
         } else /* if it was created OK, */ {
             // Try to create the two sensors.
             _accelerometer = _sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             _gyroscope     = _sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
             // Then check if they were created OK.
-            /*---*/if (_accelerometer==null){
-                errortype = errors.NO_ACCELEROMETER;
+            if (_accelerometer==null){
+                errorCode = Warnings.NO_ACCELEROMETER;
             } else if (_gyroscope==null) {
-                errortype = errors.NO_GYROSCOPE;
+                errorCode = Warnings.NO_GYROSCOPE;
             }
         }
     }
@@ -94,52 +84,51 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     public void onSensorChanged(SensorEvent event) {
         // Update the current time.
         lTimeEnd = System.currentTimeMillis();
+        if (lTimeEnd - lSensorTimeStart >= lSensorInterval) {
 
+            // TODO: read sensor data
+            // Accelerometer data
+            final float xval = event.values[0];
+            final float yval = event.values[1];
+            final float zval = event.values[2];
+            // Accelerometer data
+            if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                _handler.post(new Runnable(){
+                    @Override
+                    public void run() {
+                        // records the amount of movement, direction doesn't matter.
+                        _data_accelerometer[0] += Math.abs(xval);
+                        _data_accelerometer[1] += Math.abs(yval);
+                        _data_accelerometer[2] += Math.abs(zval);
+                    }});}
+            // Gyroscope data
+            else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+                _handler.post(new Runnable(){
+                    @Override
+                    public void run() {
+                        // TODO: test on a device with a functional gyroscope
+                        /** WE'RE HAVING SOME TROUBLE WITH THE GYROSCOPE SIR */
+                    }});}
+            lSensorTimeStart = lTimeEnd;
+        }
         // If enough time between warnings is done, display a new warning (if there are any).
         if (lTimeEnd - lWarningTimeStart >= lWarningInterval) {
-            //periodically show warning messages on a short interval
-            /*---*/if (errortype == errors.NO_GYROSCOPE) {
-                Toast.makeText(getApplicationContext(), "WARNING: Missing Gyroscope!", Toast.LENGTH_SHORT).show();
-            } else if (errortype == errors.NO_ACCELEROMETER) {
-                Toast.makeText(getApplicationContext(), "WARNING: Missing Accelerometer!", Toast.LENGTH_SHORT).show();
-            } else if (errortype == errors.NO_SENSORS) {
-                Toast.makeText(getApplicationContext(), "WARNING: Missing Required Sensors!", Toast.LENGTH_SHORT).show();
-            }
+            Toast.makeText(getApplicationContext(), Warnings.Message(errorCode), Toast.LENGTH_SHORT).show();
             // Update the time that the most recent warning was displayed.
             lWarningTimeStart = lTimeEnd;
         }
-        // If enough time has passed for a new reading to be taken, take a new reading.
-        if (lTimeEnd - lTimeStart >= lInterval) { // TODO: I removed the 'else' from this line because it would cause the code to skip making a new entry sometimes.
+        // If enough time has passed to save / calculate data, do that.
+        if (lTimeEnd - lRecordTimeStart >= lRecordInterval) {
             // TODO: create a new entry
-            EntryItem item = new EntryItem("?", lTimeStart, lTimeEnd);
+            //EntryItem item = new EntryItem("?", lRecordTimeStart, lTimeEnd);
             // TODO figure out how to add EntryItems to the list
             //android.widget.RelativeLayout temptest = ((android.widget.RelativeLayout)(findViewById(R.id.listviewfrag)));
-            // Toast.makeText(getApplicationContext(), "INTERVAL: "+(new Long(((lTimeEnd - lTimeStart)/1000))).toString(), Toast.LENGTH_SHORT).show();
-            lTimeStart = lTimeEnd;
+            String message = "" + _data_accelerometer[0] + ", " + _data_accelerometer[1] +
+                    ", " + _data_accelerometer[2] + ".";
+            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            _data_accelerometer[0] = _data_accelerometer[1] = _data_accelerometer[2] = 0;
+            lRecordTimeStart = lTimeEnd;
         }
-        // TODO: there was no reason for this code to only be executed sometimes. Removed 'else'.
-        // read data
-        final float xval = event.values[0];
-        final float yval = event.values[1];
-        final float zval = event.values[2];
-
-        // Accelerometer data
-        if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            _handler.post(new Runnable(){
-                @Override
-                public void run() {
-                    String message = "Accelerometer: " + xval + ", " + yval + ", " + zval;
-                    Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
-                }});}
-
-        // Gyroscope data
-        else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-            _handler.post(new Runnable(){
-                @Override
-                public void run() {
-                    String message = "Gyroscope: "+xval+", "+yval+", "+zval;
-                    //Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
-                }});}
     }
 
     @Override
@@ -179,4 +168,6 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
+
+
 }
