@@ -7,6 +7,8 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 
 public class MainActivity extends ActionBarActivity
 {
@@ -19,6 +21,11 @@ public class MainActivity extends ActionBarActivity
         super.onCreate(savedInstanceState);
         // Display the main activity.
         this.setContentView(R.layout.activity_main);
+        FragmentManager fragmentManager = getFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        EntryFragment entryFragment = new EntryFragment();
+        fragmentTransaction.add(R.id.mainLayoutID, entryFragment);
+        fragmentTransaction.commit();
     }
 
     @Override
