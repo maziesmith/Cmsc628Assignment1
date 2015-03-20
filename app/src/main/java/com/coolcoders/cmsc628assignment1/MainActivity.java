@@ -21,8 +21,8 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
     /** Intervals between reading sensor data, displaying warnings, and recording data */
     private final long lSensorInterval = 5000; // 0.5 seconds
-    private final long lWarningInterval = 120000; // 120 seconds
-    private final long lRecordInterval = 12000; // 12 seconds
+    private final long lWarningInterval = 10000; // 10 seconds
+    private final long lRecordInterval = 120000; // 120 seconds
 
     /** Track times between reading sensor data, showing warnings, and recording data */
     private long lSensorTimeStart;
