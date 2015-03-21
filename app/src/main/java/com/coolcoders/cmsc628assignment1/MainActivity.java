@@ -10,9 +10,13 @@ import android.view.MenuItem;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.widget.Toast;
+import android.content.Context;
 
 public class MainActivity extends ActionBarActivity
 {
+    /** Allows static referencing of the application context. */
+    private static Context context;
+
     /**
      * This is called once during setup. It handles initialization.
      * @param savedInstanceState If this is resuming from a previous run, load previous state.
@@ -20,6 +24,10 @@ public class MainActivity extends ActionBarActivity
     protected void onCreate(Bundle savedInstanceState) {
         // Stuff inherited from ActionBarActivity.
         super.onCreate(savedInstanceState);
+
+        // Enable static referencing of the application context.
+        context = this.getApplicationContext();
+
         // Display the main activity.
         this.setContentView(R.layout.activity_main);
 
@@ -32,6 +40,14 @@ public class MainActivity extends ActionBarActivity
             Toast.makeText(this.getApplicationContext(), "Oh hey, you saved stuff.", Toast.LENGTH_SHORT).show();
             EntryFragment entryFragment = (EntryFragment) getFragmentManager().findFragmentByTag("the_entry_fragment");
         }
+    }
+
+    /**
+     * Enables static accessing of application context.
+     * @return the application context
+     */
+    public static Context GetApplicationContext(){
+        return context;
     }
 
     @Override
