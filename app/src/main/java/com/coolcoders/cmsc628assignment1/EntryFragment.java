@@ -22,25 +22,25 @@ import java.util.List;
 public class EntryFragment extends ListFragment implements SensorEventListener {
 
     public static List<EntryItem> _items;
-    private EntryAdapter _adapter; /** new items are displayed from this */
-    private SensorManager _sensorManager = null;
-    private Sensor _accelerometer = null; /** accelerometer sensor. */
-    private Sensor _gyroscope = null; /** gyroscope sensor. */
+    public static EntryAdapter _adapter; /** new items are displayed from this */
+    public static SensorManager _sensorManager = null;
+    public static Sensor _accelerometer = null; /** accelerometer sensor. */
+    public static Sensor _gyroscope = null; /** gyroscope sensor. */
     /** Intervals between reading sensor data, displaying warnings, and recording data */
-    private final long lSensorInterval = 5000; // 0.5 seconds
-    private final long lWarningInterval = 10000; // 10 seconds
-    private final long lRecordInterval = 20000; // 120 seconds
+    private final long lSensorInterval = 500; // 0.5 seconds
+    private final long lWarningInterval = 120000; // 10 seconds
+    private final long lRecordInterval = 7000; // 120 seconds
 
     /** Track times between reading sensor data, showing warnings, and recording data */
-    private Handler _handler = null;
-    private long lSensorTimeStart;
-    private long lWarningTimeStart;
-    private long lRecordTimeStart;
+    public static Handler _handler = null;
+    public static long lSensorTimeStart;
+    public static long lWarningTimeStart;
+    public static long lRecordTimeStart;
     /** The 'current' time; updated every time sensors change. */
-    private long lTimeEnd;
+    public static long lTimeEnd;
 
     /** Gets message from Warnings class depending on status of sensors detected. */
-    private int errorCode = Warnings.OK;
+    public static int errorCode = Warnings.OK;
 
     // So, the problem is that 1) the gyroscope has no idea which way is up, 2) the accelerometer
     // can feel acceleration due to gravity, but has no way to differentiate gravity vs. movement,
@@ -52,56 +52,50 @@ public class EntryFragment extends ListFragment implements SensorEventListener {
     private float zAxis;
 
     /** Store cumulative accelerator x,y,z data from the sensors */
-    private float[] _data_accelerometer;
+    public static float[] _data_accelerometer;
 
 
     // TODO: populate list from MainActivity
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        _items = new ArrayList<EntryItem>();
-        _data_accelerometer = new float[3]; /* x, y, z */
-        lRecordTimeStart = System.currentTimeMillis();
-        lSensorTimeStart = System.currentTimeMillis() - 250; // offset .25s to avoid overlap
-        lWarningTimeStart = System.currentTimeMillis() - 4000; // offset 4s to avoid overlap
-        // Attempt to create the sensor manager.
-        _sensorManager = (SensorManager)getActivity().getSystemService(Context.SENSOR_SERVICE);
-        // First, check if a SensorManager was successfully created.
-        _handler = new Handler();
+        if (savedInstanceState==null) {
+            _items = new ArrayList<EntryItem>();
+            _data_accelerometer = new float[3]; /* x, y, z */
+            lRecordTimeStart = System.currentTimeMillis();
+            lSensorTimeStart = System.currentTimeMillis() - 250; // offset .25s to avoid overlap
+            lWarningTimeStart = System.currentTimeMillis() - 4000; // offset 4s to avoid overlap
+            // Attempt to create the sensor manager.
+            _sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
+            // First, check if a SensorManager was successfully created.
+            _handler = new Handler();
+        }
         if (_sensorManager==null) {
             errorCode = Warnings.NO_SENSORS;
-        } else /* if it was created OK, */ {
-            // Try to create the two sensors.
+        } else {
+            /* if manager was found OK, try to get the required sensors. */
             _accelerometer = _sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             _gyroscope     = _sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-            // Then check if they were created OK.
+            /* Then check if they were found OK too. */
             if (_accelerometer==null){
                 errorCode = Warnings.NO_ACCELEROMETER;
             } else if (_gyroscope==null) {
                 errorCode = Warnings.NO_GYROSCOPE;
             }
         }
-
-        _items.add(new EntryItem("START", lRecordTimeStart,lSensorTimeStart));
-        // send data to the adapter for displaying
-        _adapter = new EntryAdapter(getActivity(), _items);
+        /* send data to the adapter for displaying */
+        if (_adapter==null) {
+            _adapter = new EntryAdapter(getActivity(), _items);
+        }
         setListAdapter(_adapter);
-    }
-
-    @Override
-    public void onViewCreated(View view, Bundle savedInstanceState){
-        super.onViewCreated(view, savedInstanceState);
-        int[] colors = { 0xA8A8A8A8, 0xFFFFFFFF, 0xA8A8A8A8 };
-        getListView().setDivider(new GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, colors));
-        getListView().setDividerHeight(1);
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
         // Update the current time.
         lTimeEnd = System.currentTimeMillis();
-        if (lTimeEnd - lSensorTimeStart >= lSensorInterval) {
-
-            // TODO: read sensor data
+        if (lTimeEnd - lSensorTimeStart >= lSensorInterval)
+        {
+            // TODO: calculate sensor data
             // Accelerometer data
             final float xval = event.values[0];
             final float yval = event.values[1];
@@ -127,26 +121,34 @@ public class EntryFragment extends ListFragment implements SensorEventListener {
             lSensorTimeStart = lTimeEnd;
         }
         // If enough time between warnings is done, display a new warning (if there are any).
-        if (lTimeEnd - lWarningTimeStart >= lWarningInterval) {
-
+        if (lTimeEnd - lWarningTimeStart >= lWarningInterval)
+        {
             Toast.makeText(getActivity().getApplicationContext(), Warnings.Message(errorCode), Toast.LENGTH_SHORT).show();
             // Update the time that the most recent warning was displayed.
             lWarningTimeStart = lTimeEnd;
         }
         // If enough time has passed to save / calculate data, do that.
-        if (lTimeEnd - lRecordTimeStart >= lRecordInterval) {
+        if (lTimeEnd - lRecordTimeStart >= lRecordInterval)
+        {
+            String message = "<unknown>";
             // put the data into a new item, then add to the displayed list
-            String message = "accelerometer data: " + _data_accelerometer[0] + ", " + _data_accelerometer[1] +
-                    ", " + _data_accelerometer[2] + ".";
+            if (_data_accelerometer[1] > _data_accelerometer[0] && _data_accelerometer[1] > _data_accelerometer[2])
+            {
+                message = "Sitting";
+            }
+            else {
+                message = "Lying Down";
+            }
             EntryItem item = new EntryItem(message, lRecordTimeStart, lTimeEnd);
             _items.add(item);
             _adapter.notifyDataSetChanged();
-
-            //Toast.makeText(getActivity().getApplicationContext(), message, Toast.LENGTH_SHORT).show();
             _data_accelerometer[0] = _data_accelerometer[1] = _data_accelerometer[2] = 0;
             lRecordTimeStart = lTimeEnd;
         }
     }
+
+
+    /** everything below this line basically works */
 
     @Override
     public void onResume() {
@@ -159,6 +161,15 @@ public class EntryFragment extends ListFragment implements SensorEventListener {
     public void onPause() {
         super.onPause();
         _sensorManager.unregisterListener(this);
+    }
+
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState){
+        super.onViewCreated(view, savedInstanceState);
+        int[] colors = { 0xA8A8A8A8, 0xFFFFFFFF, 0xA8A8A8A8 };
+        getListView().setDivider(new GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, colors));
+        getListView().setDividerHeight(1);
     }
 
     @Override
