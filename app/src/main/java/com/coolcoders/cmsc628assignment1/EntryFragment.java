@@ -27,7 +27,7 @@ public class EntryFragment extends ListFragment implements SensorEventListener {
     public static Sensor _accelerometer = null; /** accelerometer sensor. */
     public static Sensor _gyroscope = null; /** gyroscope sensor. */
     /** Intervals between reading sensor data, displaying warnings, and recording data */
-    private final long lSensorInterval = 500; // 0.5 seconds
+    private final long lSensorInterval = 250; // 0.25 seconds
     private final long lWarningInterval = 120000; // 10 seconds
     private final long lRecordInterval = 7000; // 120 seconds
 
@@ -134,7 +134,14 @@ public class EntryFragment extends ListFragment implements SensorEventListener {
             // put the data into a new item, then add to the displayed list
             if (_data_accelerometer[1] > _data_accelerometer[0] && _data_accelerometer[1] > _data_accelerometer[2])
             {
-                message = "Sitting";
+
+                if (_data_accelerometer[0]+_data_accelerometer[2]>20) {
+                    // a lot of movement on xz-plane generally implies walking
+                    message = "Walking";
+                } else {
+                    // otherwise implies vertical but non-moving
+                    message = "Sitting";
+                }
             }
             else {
                 message = "Lying Down";
@@ -142,6 +149,8 @@ public class EntryFragment extends ListFragment implements SensorEventListener {
             EntryItem item = new EntryItem(message, lRecordTimeStart, lTimeEnd);
             _items.add(item);
             _adapter.notifyDataSetChanged();
+//            message = "x:"+_data_accelerometer[0]+",y:"+_data_accelerometer[1]+",z:"+_data_accelerometer[2];
+//            Toast.makeText(getActivity().getApplicationContext(), message, Toast.LENGTH_SHORT).show();
             _data_accelerometer[0] = _data_accelerometer[1] = _data_accelerometer[2] = 0;
             lRecordTimeStart = lTimeEnd;
         }
