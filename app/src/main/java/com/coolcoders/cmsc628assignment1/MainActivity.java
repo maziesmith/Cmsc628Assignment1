@@ -9,6 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.widget.Toast;
 
 public class MainActivity extends ActionBarActivity
 {
@@ -21,11 +22,16 @@ public class MainActivity extends ActionBarActivity
         super.onCreate(savedInstanceState);
         // Display the main activity.
         this.setContentView(R.layout.activity_main);
-        FragmentManager fragmentManager = getFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        EntryFragment entryFragment = new EntryFragment();
-        fragmentTransaction.add(R.id.mainLayoutID, entryFragment);
-        fragmentTransaction.commit();
+
+        if (savedInstanceState == null){
+            Toast.makeText(this.getApplicationContext(), "Nothing was saved. :D", Toast.LENGTH_SHORT).show();
+            EntryFragment entryFragment = new EntryFragment();
+            entryFragment.setArguments(getIntent().getExtras());
+            getFragmentManager().beginTransaction().replace(R.id.mainLayoutID, entryFragment, "the_entry_fragment" ).commit();
+        } else {
+            Toast.makeText(this.getApplicationContext(), "Oh hey, you saved stuff.", Toast.LENGTH_SHORT).show();
+            EntryFragment entryFragment = (EntryFragment) getFragmentManager().findFragmentByTag("the_entry_fragment");
+        }
     }
 
     @Override
