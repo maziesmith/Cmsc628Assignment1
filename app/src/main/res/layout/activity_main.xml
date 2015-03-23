@@ -13,11 +13,5 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
-    <!--<fragment
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/listviewfrag"
-        android:name="com.coolcoders.cmsc628assignment1.EntryFragment"
-        />-->
 
 </RelativeLayout>

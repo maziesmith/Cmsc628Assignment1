@@ -2,6 +2,7 @@ package com.coolcoders.cmsc628assignment1;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Represents an entry on a list of activities (sitting, walking, lying down).
@@ -32,9 +33,21 @@ public class EntryItem {
         this.lTimeStart = lTimeStart;
         this.lTimeEnd = lTimeEnd;
         // Format the times and store them in Strings.
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
         strTimeStart = sdf.format(new Date(this.lTimeStart));
         strTimeEnd = sdf.format(new Date(this.lTimeEnd));
-        strTimeFull = strTimeStart + "-" + strTimeEnd;
+        strTimeFull = strTimeStart + " - " + strTimeEnd;
+    }
+
+    /* Call this when writing the list of entries to an XML file*/
+    public static String EntryListString(List<EntryItem> list) {
+        String strout = "<?xml version=\"1.0\" encoding=\"utf-8\"?><data>";
+        for (int i = 0; i < list.size(); i++) {
+            strout += "<entry><time>" +
+                    list.get(i).strTimeFull + "</time><info>" +
+                    list.get(i).strInfo + "</info></entry>";
+        }
+        strout += "</data>";
+        return strout;
     }
 }

@@ -1,14 +1,9 @@
 package com.coolcoders.cmsc628assignment1;
 
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.widget.Toast;
 import android.content.Context;
 
@@ -32,14 +27,15 @@ public class MainActivity extends ActionBarActivity
         this.setContentView(R.layout.activity_main);
 
         if (savedInstanceState == null){
-            Toast.makeText(this.getApplicationContext(), "Nothing was saved. :D", Toast.LENGTH_SHORT).show();
-            EntryFragment entryFragment = new EntryFragment();
-            entryFragment.setArguments(getIntent().getExtras());
-            getFragmentManager().beginTransaction().replace(R.id.mainLayoutID, entryFragment, "the_entry_fragment" ).commit();
-        } else {
-            Toast.makeText(this.getApplicationContext(), "Oh hey, you saved stuff.", Toast.LENGTH_SHORT).show();
-            EntryFragment entryFragment = (EntryFragment) getFragmentManager().findFragmentByTag("the_entry_fragment");
+           // Toast.makeText(context, "Nothing was saved. :D", Toast.LENGTH_SHORT).show();
+            SensorFragment sensorFragment = new SensorFragment();
+            sensorFragment.setArguments(getIntent().getExtras());
+            getFragmentManager().beginTransaction().replace(R.id.mainLayoutID, sensorFragment, "the_entry_fragment" ).commit();
         }
+        /*else {
+            Toast.makeText(context, "Oh hey, you saved stuff.", Toast.LENGTH_SHORT).show();
+        SensorFragment sensorFragment = (SensorFragment) getFragmentManager().findFragmentByTag("the_entry_fragment");
+        }*/
     }
 
     /**

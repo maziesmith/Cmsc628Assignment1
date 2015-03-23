@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * List UI that contains entries
  */
-public class EntryFragment extends ListFragment implements SensorEventListener {
+public class SensorFragment extends ListFragment implements SensorEventListener {
 
     public static List<EntryItem> _items;
     public static EntryAdapter _adapter; /** new items are displayed from this */
@@ -55,7 +55,6 @@ public class EntryFragment extends ListFragment implements SensorEventListener {
     /** Store cumulative accelerator x,y,z data from the sensors */
     public static float[] _data_accelerometer;
 
-    // TODO: populate list from MainActivity
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (savedInstanceState==null) {
