@@ -27,47 +27,83 @@ public class SensorFragment extends ListFragment implements SensorEventListener 
     public static Sensor _accelerometer = null; /** accelerometer sensor. */
     public static Sensor _gyroscope = null; /** gyroscope sensor. */
     /** Intervals between reading sensor data, displaying warnings, and recording data */
-    private final long lSensorInterval = 250; // 0.25 seconds
+    private final long lSensorInterval = 150; // 0.25 seconds
     private final long lWarningInterval = 120000; // 10 seconds
-    private final long lRecordInterval = 7000; // 120 seconds
-    public final int iMaxRecordedEntries = 10; // remove stored data on 11th or older entries
+    private final long lWriteInterval = 7000; // 120 seconds
+    public final int iMaxEntries = 10; // remove stored data on 11th or older entries
 
     /** Track times between reading sensor data, showing warnings, and recording data */
-    public static Handler _handler = null;
+    public static Handler _sensorHandler;
+    public static Handler _warningHandler;
+    public static Handler _writeHandler;
+
     public static long lSensorTimeStart;
-    public static long lWarningTimeStart;
-    public static long lRecordTimeStart;
-    /** The 'current' time; updated every time sensors change. */
-    public static long lTimeEnd;
+    public static long lWriteTimeStart;
+
+    public static int iGuessSitting;
+    public static int iGuessProne;
+    public static int iGuessUpright;
 
     /** Gets message from Warnings class depending on status of sensors detected. */
     public static int errorCode = Warnings.OK;
 
-   /* // So, the problem is that 1) the gyroscope has no idea which way is up, 2) the accelerometer
-    // can feel acceleration due to gravity, but has no way to differentiate gravity vs. movement,
-    // and 3) the user might be moving or have the phone in a weird position when they start using
-    // the app. Proposed solution: Assume the user is not moving and is holding the device upright
-    // when  they start the app. Then, set and maintain these values.
-    private float xAxis;
-    private float yAxis;
-    private float zAxis; */
+    private Runnable _sensorRunnable = new Runnable(){
+        @Override
+        public void run(){
+            onResume(); // force sensor to record
+            _sensorHandler.postDelayed(_sensorRunnable, lSensorInterval);
+        }
+    };
 
-    /** Store cumulative accelerator x,y,z data from the sensors */
-    public static float[] _data_accelerometer;
+    private Runnable _warningRunnable = new Runnable(){
+        @Override
+        public void run(){
+            Toast.makeText(getActivity().getApplicationContext(), Warnings.Message(errorCode), Toast.LENGTH_SHORT).show();
+            _warningHandler.postDelayed(_warningRunnable, lWarningInterval);
+        }
+    };
+
+    private Runnable _writeRunnable = new Runnable(){
+        @Override
+        public void run(){
+            String  message = "blank";
+            if (iGuessUpright > iGuessProne && iGuessUpright > iGuessSitting) {
+                message = "Walking/Standing";
+            }
+            else if (iGuessSitting > iGuessUpright && iGuessSitting > iGuessProne) {
+                message = "Sitting";
+            } else {
+               message = "Lying Down";
+            }
+            /* put the data into a new item, then add to the displayed list */
+            EntryItem item = new EntryItem(message, lWriteTimeStart, System.currentTimeMillis());
+            _items.add(item);
+            if (_items.size()>iMaxEntries) { /* remove entries that are too old */
+                _items.remove(0);
+            }
+            /* add the new entry, and then reset the sensor data */
+            _adapter.notifyDataSetChanged();
+            iGuessSitting = iGuessProne = iGuessUpright = 0;
+            lWriteTimeStart = System.currentTimeMillis();
+            _writeHandler.postDelayed(_writeRunnable,lWriteInterval);
+        }
+    };
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (savedInstanceState==null) {
             _items = new ArrayList<EntryItem>();
-            _data_accelerometer = new float[3]; /* x, y, z */
-            lRecordTimeStart = System.currentTimeMillis();
-            lSensorTimeStart = System.currentTimeMillis() - 250; // offset .25s to avoid overlap
-            lWarningTimeStart = System.currentTimeMillis() - 4000; // offset 4s to avoid overlap
-            /* Attempt to create the sensor manager. */
-            _sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
-            /* First, check if a SensorManager was successfully created. */
-            _handler = new Handler();
+            lSensorTimeStart = System.currentTimeMillis();
+            lWriteTimeStart = lSensorTimeStart + 100; // offset to to avoid overlap
+            _sensorHandler = new Handler();
+            _sensorHandler.postDelayed(_sensorRunnable, lSensorInterval);
+            _warningHandler = new Handler();
+            _warningHandler.postDelayed(_warningRunnable, lWarningInterval);
+            _writeHandler = new Handler();
+            _writeHandler.postDelayed(_writeRunnable, lWriteInterval);
         }
+        /* Attempt to get the sensor manager. */
+        _sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
         if (_sensorManager==null) {
             errorCode = Warnings.NO_SENSORS;
         } else {
@@ -91,67 +127,21 @@ public class SensorFragment extends ListFragment implements SensorEventListener 
     @Override
     public void onSensorChanged(SensorEvent event) {
         // Update the current time.
-        lTimeEnd = System.currentTimeMillis();
-        if (lTimeEnd - lSensorTimeStart >= lSensorInterval)
-        {
+        if (System.currentTimeMillis() - lSensorTimeStart >= lSensorInterval) {
             // Accelerometer data
-            final float xval = event.values[0];
-            final float yval = event.values[1];
-            final float zval = event.values[2];
-            if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                _handler.post(new Runnable(){
-                    @Override
-                    public void run() {
-                        _data_accelerometer[0] += Math.abs(xval);
-                        _data_accelerometer[1] += Math.abs(yval);
-                        _data_accelerometer[2] += Math.abs(zval);
-                    }});}
-            // Gyroscope data
-            else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-                _handler.post(new Runnable(){
-                    @Override
-                    public void run() {
-                        // TODO: test on a device with a functional gyroscope
-                        /** WE'RE HAVING SOME TROUBLE WITH THE GYROSCOPE SIR */
-                    }});}
-            lSensorTimeStart = lTimeEnd;
-        }
-        /* If enough time between warnings is done, display a new warning (if there are any). */
-        if (lTimeEnd - lWarningTimeStart >= lWarningInterval)
-        {
-            Toast.makeText(getActivity().getApplicationContext(), Warnings.Message(errorCode), Toast.LENGTH_SHORT).show();
-            /*Update the time that the most recent warning was displayed. */
-            lWarningTimeStart = lTimeEnd;
-        }
-        /* If enough time has passed to save / calculate data, do that. */
-        if (lTimeEnd - lRecordTimeStart >= lRecordInterval)
-        {
-            String message = "<unknown>";
-            if (_data_accelerometer[1] > _data_accelerometer[0] && _data_accelerometer[1] > _data_accelerometer[2])
-            {
-                /* majority of force along y-axis implies device is oriented upright. */
-                if (_data_accelerometer[0]+_data_accelerometer[2]>20) {
-                    /* a lot of movement on xz-plane generally implies walking */
-                    message = "Walking";
-                } else {
-                    /* otherwise assume non-moving */
-                    message = "Sitting";
-                }
+            final float xval = Math.abs(event.values[0]);
+            final float yval = Math.abs(event.values[1]);
+            final float zval = Math.abs(event.values[2]);
+            if (yval > zval && yval > xval) {
+                /* y-axis = up, likely standing or walking */
+                iGuessUpright++;
+            } else if (xval > yval && xval > zval) {
+                /* x-axis = sideways, most like in a pocket when seated */
+                iGuessSitting++;
+            } else {
+                iGuessProne++;
             }
-            else {
-                /* majority of force along x- or z-axis implies device is oriented sideways. */
-                message = "Lying Down";
-            }
-            /* put the data into a new item, then add to the displayed list */
-            EntryItem item = new EntryItem(message, lRecordTimeStart, lTimeEnd);
-            _items.add(item);
-            if (_items.size()>iMaxRecordedEntries) { /* remove entries that are too old */
-                _items.remove(0);
-            }
-            /* add the new entry, and then reset the sensor data */
-            _adapter.notifyDataSetChanged();
-            _data_accelerometer[0] = _data_accelerometer[1] = _data_accelerometer[2] = 0;
-            lRecordTimeStart = lTimeEnd;
+            lSensorTimeStart = System.currentTimeMillis();
         }
     }
 
