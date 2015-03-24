@@ -1,5 +1,6 @@
 package com.coolcoders.cmsc628assignment1;
 
+import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -7,10 +8,14 @@ import android.view.MenuItem;
 import android.widget.Toast;
 import android.content.Context;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.List;
+
 public class MainActivity extends ActionBarActivity
 {
     /** Allows static referencing of the application context. */
-    private static Context context;
+    public static Context context;
 
     /**
      * This is called once during setup. It handles initialization.
@@ -65,4 +70,6 @@ public class MainActivity extends ActionBarActivity
         }
         return super.onOptionsItemSelected(item);
     }
+
+
 }

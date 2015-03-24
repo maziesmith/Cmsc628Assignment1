@@ -9,10 +9,13 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.view.View;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,9 +30,9 @@ public class SensorFragment extends ListFragment implements SensorEventListener 
     public static Sensor _accelerometer = null; /** accelerometer sensor. */
     public static Sensor _gyroscope = null; /** gyroscope sensor. */
     /** Intervals between reading sensor data, displaying warnings, and recording data */
-    private final long lSensorInterval = 150; // 0.25 seconds
-    private final long lWarningInterval = 120000; // 10 seconds
-    private final long lWriteInterval = 7000; // 120 seconds
+    private final long lSensorInterval = 100; // 0.1 seconds
+    private final long lWarningInterval = 10000; // 10 seconds
+    private final long lWriteInterval = 12000; // 120 seconds
     public final int iMaxEntries = 10; // remove stored data on 11th or older entries
 
     /** Track times between reading sensor data, showing warnings, and recording data */
@@ -50,7 +53,7 @@ public class SensorFragment extends ListFragment implements SensorEventListener 
     private Runnable _sensorRunnable = new Runnable(){
         @Override
         public void run(){
-            onResume(); // force sensor to record
+            onResume(); // force sensor to record if/when app is not in focus.
             _sensorHandler.postDelayed(_sensorRunnable, lSensorInterval);
         }
     };
@@ -58,7 +61,7 @@ public class SensorFragment extends ListFragment implements SensorEventListener 
     private Runnable _warningRunnable = new Runnable(){
         @Override
         public void run(){
-            Toast.makeText(getActivity().getApplicationContext(), Warnings.Message(errorCode), Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getActivity().getApplicationContext(), Warnings.Message(errorCode), Toast.LENGTH_SHORT).show();
             _warningHandler.postDelayed(_warningRunnable, lWarningInterval);
         }
     };
@@ -81,6 +84,7 @@ public class SensorFragment extends ListFragment implements SensorEventListener 
             if (_items.size()>iMaxEntries) { /* remove entries that are too old */
                 _items.remove(0);
             }
+            SaveToFile(_items, "list_items.xml");
             /* add the new entry, and then reset the sensor data */
             _adapter.notifyDataSetChanged();
             iGuessSitting = iGuessProne = iGuessUpright = 0;
@@ -93,6 +97,7 @@ public class SensorFragment extends ListFragment implements SensorEventListener 
         super.onCreate(savedInstanceState);
         if (savedInstanceState==null) {
             _items = new ArrayList<EntryItem>();
+            _items.add(new EntryItem("Start",System.currentTimeMillis(),System.currentTimeMillis()));
             lSensorTimeStart = System.currentTimeMillis();
             lWriteTimeStart = lSensorTimeStart + 100; // offset to to avoid overlap
             _sensorHandler = new Handler();
@@ -143,6 +148,27 @@ public class SensorFragment extends ListFragment implements SensorEventListener 
             }
             lSensorTimeStart = System.currentTimeMillis();
         }
+    }
+
+    public static void SaveToFile(List<EntryItem> items, String filename){
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            //String filename = "list_data.xml";
+            String strout = EntryItem.EntryListString(items);
+            File file = new File(MainActivity.context.getFilesDir(), filename);
+            FileOutputStream outputStream;
+            try {
+                outputStream = MainActivity.context.openFileOutput(filename, Context.MODE_PRIVATE);
+                outputStream.write(strout.getBytes());
+                outputStream.close();
+                Toast.makeText(MainActivity.context, "Saved " + filename + " to SD", Toast.LENGTH_SHORT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(MainActivity.context, "! Could not save " + filename + " to SD !", Toast.LENGTH_SHORT);
+            }
+        } else {
+            Toast.makeText(MainActivity.context, "! Could not save " + filename + " to SD !", Toast.LENGTH_SHORT);
+        }
+
     }
 
     @Override
